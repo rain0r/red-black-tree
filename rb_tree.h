@@ -69,9 +69,9 @@ private:
 	}
 
 public:
-	Tree() :
-			root(NULL) {
-	}
+//	Tree() :
+//			root(NULL) {
+//	}
 
 	bool is_empty() const {
 		return !root;
