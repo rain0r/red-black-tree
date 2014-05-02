@@ -2,164 +2,204 @@
 #define C_BBTREE_H
 
 class Tree {
-private:
-	enum Color {
-		RED = 0, BLACK
-	};
+ private:
+  enum Color {
+    RED = 0,
+    BLACK
+  };
 
-	struct Node {
-		Node*parent, *left, *right;
-		Color color;
-		int value;
-		bool isNil;
+  struct Node {
+    Node *parent, *left, *right;
+    Color color;
+    int value;
+    bool isNil;
 
-		explicit Node(int value) :
-				parent(NULL), left(NULL), right(NULL), color(RED), value(value), isNil(
-						false) {
-		}
+    explicit Node(int value)
+        : parent(NULL),
+          left(NULL),
+          right(NULL),
+          color(RED),
+          value(value),
+          isNil(false) {
+    }
 
-		Node* grandparent() const {
-			return parent->parent;
-		}
+    Node* grandparent() const {
+      return parent->parent;
+    }
 
-		Node* uncle() const {
-			if (parent == grandparent()->left)
-				return grandparent()->right;
-			else
-				return grandparent()->left;
-		}
+    Node* uncle() const {
+      if (parent == grandparent()->left)
+        return grandparent()->right;
+      else
+        return grandparent()->left;
+    }
 
-		Node* sibling() const {
-			if (this == parent->left)
-				return parent->right;
-			else
-				return parent->left;
-		}
-	};
+    Node* sibling() const {
+      if (this == parent->left)
+        return parent->right;
+      else
+        return parent->left;
+    }
+  };
 
-	bool is_left_child(const Node *node) {
-		if (node->parent == NULL)
-			return false;
-		else
-			return node->parent->left == node;
-	}
+  bool isLeftChild(const Node *node) {
+    if (node->parent == NULL)
+      return false;
+    else
+      return node->parent->left == node;
+  }
 
-	static bool is_right_child(const Node *node) {
-		if (node->parent == NULL)
-			return false;
-		else
-			return node->parent->right == node;
-	}
+  static bool isRightChild(const Node *node) {
+    if (node->parent == NULL)
+      return false;
+    else
+      return node->parent->right == node;
+  }
 
-	Node* rotate_left(Node *n) {
+  Node* rotateLeft(Node *n) {
 
-	}
+  }
 
-	Node* rotate_right(Node*n) {
+  Node* rotateRight(Node *n) {
 
-	}
+  }
 
-	Node *root;
+  Node *rootPtr = NULL;
 
-	void createNilLeaf(Node *parent) {
-		Node n = Node(-1);
-		n.parent = parent;
-		n.color = BLACK;
-		n.isNil = true;
-	}
+  void createNilLeaf(Node *parent) {
+    Node n = Node(-1);
+    n.parent = parent;
+    n.color = BLACK;
+    n.isNil = true;
+  }
 
-public:
-//	Tree() :
-//			root(NULL) {
-//	}
+ public:
+  Tree()
+//      : rootPtr(NULL)
+ {
+    std::cout << "Tree()" << std::endl;
+  }
 
-	bool is_empty() const {
-		return !root;
-	}
+  Node* getRoot() {
+    return this->rootPtr;
+  }
 
-	bool insertValue(int value) {
-		if (this->search(value) != NULL) {
-			return false;
-		}
+  bool isEmpty() const {
+//    std::cout << "isEmpty() returns: " << !rootPtr << std::endl;
+    return !rootPtr;
+  }
 
-		Node n = Node(value);
-		n.isNil = false;
-		n.right = NULL;
-		n.left = NULL;
+  bool insertValue(int value) {
+    std::cout << "insertValue(" << value << ")" << std::endl;
 
-		if (this->is_empty()) {
-			/**
-			 * Insert the first node of the tree
-			 * (root node)
-			 */
+    // check if the value to insert already exists
+    if (this->search(value) != NULL) {
+      return false;
+    }
 
-			n.color = BLACK;
-			this->root = &n;
+    if (this->rootPtr != NULL) {
+      std::cout << "Value of root Node: " << this->rootPtr->value << std::endl;
+    }
 
-			/**
-			 * Create 2 NIL-Leaves
-			 */
-			for (int i = 0; i < 2; i++) {
-				this->createNilLeaf(&n);
-			}
-		} else {
-			/**
-			 * The new Node is not the Root
-			 */
+    Node newNode = Node(value);
 
-			Node newNode = this->findInsertPlace(this->root, value);
+    if (this->rootPtr != NULL) {
+      std::cout << "Value of root Node: " << this->rootPtr->value << std::endl;
+    }
 
-		}
+    if (this->isEmpty()) {
+      // Insert the first node of the tree
+      // (root node)
+      std::cout << "Adding root Node" << std::endl;
+      newNode.color = BLACK;
+      this->rootPtr = &newNode;
 
-		return true;
-	}
+      // Create 2 NIL-Leaves
+      for (int i = 0; i < 2; i++) {
+        this->createNilLeaf(&newNode);
+      }
+    } else {
+      // The new Node is not the Root
+      if (this->addNewNode(this->rootPtr, value)) {
+        std::cout << "Added new Node with value: " << value << std::endl;
+      } else {
+        std::cout << "Error adding new Node with value: " << value << std::endl;
+      }
+    }
 
-	Node* search(int value) {
-		return NULL;
-	}
+    // this->postorder(this->rootPtr, 2);
+    return true;
+  }
 
-	bool deleteValue(int value) {
-		return false;
-	}
+  Node* search(int value) {
+//    std::cout << "search(" << value << ")" << std::endl;
+    return NULL;
+  }
 
-	Node findInsertPlace(Node *n, int value) {
-		if (value < n->value) {
-			std::cout << value << " < " << n->value << std::endl;
-			/**
-			 * go left
-			 */
+  bool deleteValue(int value) {
+    std::cout << "deleteValue(" << value << ")" << std::endl;
+    return false;
+  }
 
-			if (n->left == NULL) {
-				/**
-				 * Create new Node
-				 */
-				Node newNode = Node(value);
-				n->left = &newNode;
+  // walk through the tree and find the correct spot to insert the new node
+  bool addNewNode(Node *node, int value) {
+    std::cout << "addNewNode(" << value << ")" << std::endl;
 
-				return newNode;
-			} else {
-				this->findInsertPlace(n->left, value);
-			}
-		} else if (value > n->value) {
-			std::cout << value << " > " << n->value << std::endl;
-			/**
-			 * go right
-			 */
+    if (node->value == value) {
+      return false;
+    } else if (value < node->value) {
+      std::cout << value << " < " << node->value << std::endl;
+      // go left
+      if (node->left == NULL) {
+        // Create new Node
+        Node newNode = Node(value);
+        node->left = &newNode;
+        return true;
+      } else {
+        this->addNewNode(node->left, value);
+      }
+    } else if (value > node->value) {
+      std::cout << value << " > " << node->value << std::endl;
 
-			if (n->right == NULL) {
-				/**
-				 * Create new Node
-				 */
-				Node newNode = Node(value);
-				n->right = &newNode;
+      // go right
+      if (node->right == NULL) {
+        // Create new Node
+        Node newNode = Node(value);
+        node->right = &newNode;
+        return true;
+      } else {
+        this->addNewNode(node->right, value);
+      }
+    }
+    return false;
+  }
 
-				return newNode;
-			} else {
-				this->findInsertPlace(n->right, value);
-			}
+  void postorder(Node* p, int indent = 0) {
+    //std::cout << "postorder()" << std::endl;
 
-		}
-	}
+    if (p != NULL) {
+      if (p->left)
+        postorder(p->left, indent + 4);
+      if (p->right)
+        postorder(p->right, indent + 4);
+      if (indent) {
+        std::cout << std::setw(indent) << ' ';
+      }
+      std::cout << p->value << std::endl;
+    }
+  }
+
+  int countNodes(Node *root) {
+    if (root == NULL)
+      return 0;
+    else {
+      int count = 1;
+      count += countNodes(root->left);
+      count += countNodes(root->right);
+      return count;
+    }
+  }
+
 };
 
 #endif
