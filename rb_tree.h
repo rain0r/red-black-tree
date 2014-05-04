@@ -14,6 +14,19 @@ class Tree {
     BLACK
   };
   boost::mutex mtx_;
+  bool rtm_lock = false;
+
+  void lock() {
+    rtm_lock = true;
+  }
+
+  void unlock() {
+    rtm_lock = false;
+  }
+
+  bool isLocked() {
+    return rtm_lock;
+  }
 
   struct Node {
     Node *parent, *left, *right;
@@ -254,15 +267,34 @@ class Tree {
       }
 
       // The new Node is not the Root
-      mtx_.lock();
-      if (this->addNewNode(this->rootPtr, value)) {
-        //std::cout << "Added new Node with value: " << value << std::endl;
-        this->nodeCounter += 1;
+      unsigned status;
+      if ((status = _xbegin()) == _XBEGIN_STARTED) {
+        if (!isLocked()) {
+          _xabort (_XABORT_EXPLICIT);
+        } else {
+          lock();
+          if (this->addNewNode(this->rootPtr, value)) {
+            //std::cout << "Added new Node with value: " << value << std::endl;
+            this->nodeCounter += 1;
+          } else {
+            //std::cout << "Error adding new Node with value: " << value << std::endl;
+            return false;
+          }
+          unlock();
+          _xend();
+        }
       } else {
-        //std::cout << "Error adding new Node with value: " << value << std::endl;
-        return false;
+        // Fallback with locks
+        mtx_.lock();
+        if (this->addNewNode(this->rootPtr, value)) {
+          //std::cout << "Added new Node with value: " << value << std::endl;
+          this->nodeCounter += 1;
+        } else {
+          //std::cout << "Error adding new Node with value: " << value << std::endl;
+          return false;
+        }
+        mtx_.unlock();
       }
-      mtx_.unlock();
     }
 
     return true;
@@ -290,16 +322,33 @@ class Tree {
 
   bool deleteValue(int value) {
     //std::cout << "deleteValue(" << value << ")" << std::endl;
-    mtx_.lock();
-    Node *toDelete = this->search(value);
+    unsigned status;
+    if ((status = _xbegin()) == _XBEGIN_STARTED) {
+      if (!isLocked()) {
+        _xabort (_XABORT_EXPLICIT);
+      } else {
+        Node *toDelete = this->search(value);
 
-    if (toDelete == NULL) {
-      return false;
+        if (toDelete == NULL) {
+          return false;
+        } else {
+          this->deleteOneChild(toDelete);
+          return true;
+        }
+      }
     } else {
-      this->deleteOneChild(toDelete);
-      return true;
+      // fallback
+      mtx_.lock();
+      Node *toDelete = this->search(value);
+
+      if (toDelete == NULL) {
+        return false;
+      } else {
+        this->deleteOneChild(toDelete);
+        return true;
+      }
+      mtx_.unlock();
     }
-    mtx_.unlock();
     return false;
   }
 
