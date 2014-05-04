@@ -28,15 +28,15 @@ int main(int argc, char* argv[]) {
 //
 //  t->print();
 
-//  bool b = t.deleteValue(4);
-//  if (b) {
-//    std::cout << "Success";
-//  } else {
-//    std::cout << "Fail";
-//  }
-//  std::cout << std::endl;
-//
-//  t.print();
+  bool b = t->deleteValue(4);
+  if (b) {
+    std::cout << "Success";
+  } else {
+    std::cout << "Fail";
+  }
+  std::cout << std::endl;
+
+  t->print();
 
   return 0;
 }
