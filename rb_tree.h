@@ -5,6 +5,7 @@
 #include <boost/thread.hpp>
 #include <iostream>
 #include <iomanip>
+#include <immintrin.h>
 
 class Tree {
  private:
