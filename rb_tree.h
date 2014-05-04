@@ -5,7 +5,7 @@
 #include <boost/thread.hpp>
 #include <iostream>
 #include <iomanip>
-
+#include <immintrin.h>
 
 class Tree {
  private:
@@ -19,6 +19,7 @@ class Tree {
     Color color;
     int value;
     bool isNil;
+    boost::mutex mtx_;
 
     explicit Node(int value_)
         : parent(NULL),
@@ -27,6 +28,7 @@ class Tree {
           color(RED),
           value(value_),
           isNil(false) {
+      mtx_.lock();
     }
 
     ~Node() {
@@ -35,17 +37,27 @@ class Tree {
       right = NULL;
       value = 0;
       color = BLACK;
+      mtx_.unlock();
     }
 
     Node* grandparent() const {
-      return parent->parent;
+      if (parent->parent != NULL) {
+        return parent->parent;
+      } else {
+        return NULL;
+      }
     }
 
     Node* uncle() const {
-      if (parent == grandparent()->left)
-        return grandparent()->right;
-      else
-        return grandparent()->left;
+      if (grandparent() != NULL) {
+        if (grandparent()->left != NULL || grandparent()->right != NULL) {
+          if (parent == grandparent()->left)
+            return grandparent()->right;
+          else
+            return grandparent()->left;
+        }
+      }
+      return NULL;
     }
 
     Node* sibling() const {
@@ -70,26 +82,34 @@ class Tree {
       return node->parent->right == node;
   }
 
-  Node* rotateLeft(Node *n) {
-    Node *tmpNode = n->right;
-    n->right = tmpNode->left;
+  Node* rotateLeft(Node *node) {
+    if (node->parent == NULL) {
+      return NULL;
+    }
+
+    Node *tmpNode = node->right;
+    node->right = tmpNode->left;
+
+    if (tmpNode->left == NULL) {
+      return NULL;
+    }
 
     if (!tmpNode->left->isNil) {
-      tmpNode->left->parent = n;
+      tmpNode->left->parent = node;
     }
-    tmpNode->parent = n->parent;
-    if (n->parent != NULL) {
-      if (n->parent->isNil) {
+    tmpNode->parent = node->parent;
+    if (node->parent != NULL) {
+      if (node->parent->isNil) {
         this->rootPtr = tmpNode;
       }
-    } else if (n->parent->left == n) {
-      n->parent->left = tmpNode;
+    } else if (node->parent->left == node) {
+      node->parent->left = tmpNode;
     } else {
-      n->parent->right = tmpNode;
+      node->parent->right = tmpNode;
     }
-    tmpNode->left = n;
-    n->parent = tmpNode;
-    return n;
+    tmpNode->left = node;
+    node->parent = tmpNode;
+    return node;
   }
 
   Node* rotateRight(Node *node) {
@@ -110,6 +130,7 @@ class Tree {
     }
     tmpNode->right = node;
     node->parent = tmpNode;
+    return node;
   }
 
   void insert_case1(Node *node) {
@@ -147,7 +168,7 @@ class Tree {
     }
   }
   void insert_case4(Node *node) {
-    if (node == NULL) {
+    if (node == NULL || node->grandparent() == NULL) {
       return;
     }
     if ((node == node->parent->right)
@@ -162,7 +183,7 @@ class Tree {
     insert_case5(node);
   }
   void insert_case5(Node *node) {
-//    std::cout << "insert_case5(" << node->value << ")" << std::endl;
+    //std::cout << "insert_case5(" << node->value << ")" << std::endl;
     if (node == NULL) {
       return;
     }
@@ -178,7 +199,6 @@ class Tree {
 
   Node *rootPtr;
   int nodeCounter;
-  boost::mutex mtx;
 
  public:
   Tree()
@@ -209,18 +229,17 @@ class Tree {
   }
 
   bool isEmpty() const {
-//    std::cout << "isEmpty() returns: " << !rootPtr << std::endl;
+    //std::cout << "isEmpty() returns: " << !rootPtr << std::endl;
     return !rootPtr;
   }
 
   bool insertValue(int value) {
-    std::cout << "insertValue(" << value << ")" << std::endl;
+    //std::cout << "insertValue(" << value << ")" << std::endl;
 
-    this->mtx.lock();
     if (this->isEmpty()) {
       // Insert the first node of the tree
       // (root node)
-      std::cout << "Adding root Node" << std::endl;
+      //std::cout << "Adding root Node" << std::endl;
       Node* newNode = new Node(value);
       newNode->color = BLACK;
       this->rootPtr = newNode;
@@ -229,27 +248,25 @@ class Tree {
     } else {
       // check if the value to insert already exists
       if (this->search(value) != NULL) {
-        std::cout << "Value " << value << " already exists" << std::endl;
+        //std::cout << "Value " << value << " already exists" << std::endl;
         return false;
       }
 
       // The new Node is not the Root
-      this->mtx.lock();
       if (this->addNewNode(this->rootPtr, value)) {
-//        std::cout << "Added new Node with value: " << value << std::endl;
+        //std::cout << "Added new Node with value: " << value << std::endl;
         this->nodeCounter += 1;
       } else {
-//        std::cout << "Error adding new Node with value: " << value << std::endl;
+        //std::cout << "Error adding new Node with value: " << value << std::endl;
         return false;
       }
     }
-    this->mtx.unlock();
 
     return true;
   }
 
   Node* search(int value) {
-//    std::cout << "search(" << value << ")" << std::endl;
+    //std::cout << "search(" << value << ")" << std::endl;
     return this->searchWalk(this->getRootPtr(), value);
   }
 
@@ -269,8 +286,7 @@ class Tree {
   }
 
   bool deleteValue(int value) {
-//    std::cout << "deleteValue(" << value << ")" << std::endl;
-    this->mtx.lock();
+    //std::cout << "deleteValue(" << value << ")" << std::endl;
     Node *toDelete = this->search(value);
 
     if (toDelete == NULL) {
@@ -279,7 +295,6 @@ class Tree {
       this->deleteOneChild(toDelete);
       return true;
     }
-    this->mtx.unlock();
 
     return false;
   }
@@ -395,23 +410,23 @@ class Tree {
       }
     }
 
-//    std::cout << "deleting :" << node->value << std::endl;
+    //std::cout << "deleting :" << node->value << std::endl;
     delete node;
     node = NULL;
   }
 
 // walk through the tree and find the correct spot to insert the new node
   bool addNewNode(Node *node, int value) {
-//    std::cout << "addNewNode(" << value << ")" << std::endl;
+    //std::cout << "addNewNode(" << value << ")" << std::endl;
 
     if (node->value == value) {
-//      std::cout << "Error:" << node->value << "==" << value << std::endl;
+      //std::cout << "Error:" << node->value << "==" << value << std::endl;
       return false;
     } else if (value < node->value) {
-//      std::cout << value << " < " << node->value << std::endl;
+      //std::cout << value << " < " << node->value << std::endl;
       // go left
       if (node->left->isNil) {
-//        std::cout << "Left one is a NilNode" << std::endl;
+        //std::cout << "Left one is a NilNode" << std::endl;
         // Create new Node
         Node* newNode = new Node(value);
         node->left = newNode;
@@ -424,10 +439,10 @@ class Tree {
         return this->addNewNode(node->left, value);
       }
     } else if (value > node->value) {
-//      std::cout << value << " > " << node->value << std::endl;
+      //std::cout << value << " > " << node->value << std::endl;
       // go right
       if (node->right->isNil) {
-//        std::cout << "Right one is a NilNode" << std::endl;
+        //std::cout << "Right one is a NilNode" << std::endl;
         // Create new Node
         Node* newNode = new Node(value);
         node->right = newNode;

@@ -16,17 +16,17 @@ int main(int argc, char* argv[]) {
   boost::thread_group tree_threads;
 
   int tcount = 4;
-  Tree t;
+  Tree *t = new Tree();
   int nums[] = { 7, 9, 5, 2, 1, 6, 3, 8, 4 };
 
   for (int i = 0; i != tcount; i++) {
-    boost::thread *t1 = new boost::thread(insert, &t);
+    boost::thread *t1 = new boost::thread(insert, t);
     tree_threads.add_thread(t1);
   }
 
   tree_threads.join_all();
 
-  t.print();
+  t->print();
 
 //  bool b = t.deleteValue(4);
 //  if (b) {
