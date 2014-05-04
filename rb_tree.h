@@ -12,13 +12,14 @@ class Tree {
     RED = 0,
     BLACK
   };
+  boost::mutex mtx_;
 
   struct Node {
     Node *parent, *left, *right;
     Color color;
     int value;
     bool isNil;
-    boost::mutex mtx_;
+//    boost::mutex mtx_;
 
     explicit Node(int value_)
         : parent(NULL),
@@ -27,7 +28,7 @@ class Tree {
           color(RED),
           value(value_),
           isNil(false) {
-      mtx_.lock();
+//      mtx_.lock();
     }
 
     ~Node() {
@@ -36,7 +37,7 @@ class Tree {
       right = NULL;
       value = 0;
       color = BLACK;
-      mtx_.unlock();
+//      mtx_.unlock();
     }
 
     Node* grandparent() const {
@@ -252,6 +253,7 @@ class Tree {
       }
 
       // The new Node is not the Root
+      mtx_.lock();
       if (this->addNewNode(this->rootPtr, value)) {
         //std::cout << "Added new Node with value: " << value << std::endl;
         this->nodeCounter += 1;
@@ -259,6 +261,7 @@ class Tree {
         //std::cout << "Error adding new Node with value: " << value << std::endl;
         return false;
       }
+      mtx_.unlock();
     }
 
     return true;
@@ -286,6 +289,7 @@ class Tree {
 
   bool deleteValue(int value) {
     //std::cout << "deleteValue(" << value << ")" << std::endl;
+    mtx_.lock();
     Node *toDelete = this->search(value);
 
     if (toDelete == NULL) {
@@ -294,7 +298,7 @@ class Tree {
       this->deleteOneChild(toDelete);
       return true;
     }
-
+    mtx_.unlock();
     return false;
   }
 
